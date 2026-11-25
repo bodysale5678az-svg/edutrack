@@ -1,5 +1,7 @@
 # EduTrack — نظام إدارة التعليم
 
+[![CI](https://github.com/bodysale5678az-svg/edutrack/actions/workflows/ci.yml/badge.svg)](https://github.com/bodysale5678az-svg/edutrack/actions/workflows/ci.yml)
+
 تطبيق ويب عربي (RTL) لإدارة العملية التعليمية، مبني بـ **ASP.NET Core MVC** و**Entity Framework Core** و**ASP.NET Core Identity**.
 بيغطي إدارة الأقسام والمحاضرين والكورسات والطلاب والتسجيل في الكورسات والواجبات وتسليمها وتصحيحها.
 
@@ -123,3 +125,9 @@ dotnet ef database update --project edutrack/edutrack.csproj
 ## ملاحظة
 
 ملف `EduTrack-Sharh-almashroo3.pdf` في جذر الريبو هو شرح المشروع (وثيقة التسليم).
+
+---
+
+## الترخيص
+
+هذا المشروع مرخّص تحت [MIT License](LICENSE).
