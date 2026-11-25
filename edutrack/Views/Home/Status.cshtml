@@ -1,0 +1,42 @@
+@{
+    ViewData["Title"] = ViewData["StatusTitle"];
+    var code = ViewData["StatusCode"] as int? ?? 404;
+    var icon = code == 404 ? "bi-compass" : code == 403 ? "bi-shield-lock" : "bi-exclamation-triangle";
+    var color = code == 404 ? "primary" : code == 403 ? "warning" : "danger";
+}
+
+<div class="row justify-content-center py-5">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 text-center">
+            <div class="card-body p-5">
+                <div class="display-1 fw-bold text-@color mb-2">@code</div>
+                <div class="mb-3">
+                    <i class="bi @icon display-5 text-@color"></i>
+                </div>
+                <h3 class="fw-bold mb-2">@ViewData["StatusTitle"]</h3>
+                <p class="text-muted mb-4">
+                    @if (code == 404)
+                    {
+                        <span>الرابط اللي فتحته مش موجود، أو العنصر اتحذف. جرّب ترجع للكورسات وتختار الكورس من جديد.</span>
+                    }
+                    else if (code == 403)
+                    {
+                        <span>الحساب الحالي مش مسموح له بالدخول هنا. سجّل دخول بحساب محاضر أو أدمن.</span>
+                    }
+                    else
+                    {
+                        <span>حصلت مشكلة أثناء تنفيذ الطلب. جرّب تاني، ولو المشكلة استمرت راجع لوج السيرفر.</span>
+                    }
+                </p>
+                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-primary rounded-pill px-4">
+                        <i class="bi bi-house-door me-1"></i> الرئيسية
+                    </a>
+                    <a asp-controller="Courses" asp-action="Index" class="btn btn-light rounded-pill px-4">
+                        <i class="bi bi-journal-code me-1"></i> الكورسات
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,81 @@
+@model EnrollStudentsViewModel
+@{
+    ViewData["Title"] = "تسجيل طلاب في الكورس";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h4 class="fw-bold mb-1"><i class="bi bi-person-plus text-primary me-2"></i>تسجيل طلاب في الكورس</h4>
+                <p class="text-muted small mb-0">
+                    الكورس: <strong>@Model.CourseTitle</strong> — المسجلون حالياً: <strong>@Model.EnrolledCount</strong>
+                </p>
+            </div>
+            <div class="card-body p-4">
+                @if (!Model.Students.Any())
+                {
+                    <div class="alert alert-light border rounded-4 text-center p-4 mb-0">
+                        <i class="bi bi-check2-circle fs-3 d-block mb-2 text-success"></i>
+                        كل الطلاب المسجلين في المنصة متسجلين في الكورس ده بالفعل.
+                    </div>
+                }
+                else
+                {
+                    <form asp-action="Enroll" asp-route-courseId="@Model.CourseId" method="post">
+                        <input type="hidden" asp-for="CourseId" />
+                        <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted small">اختار الطلاب المطلوب تسجيلهم:</span>
+                            <button type="button" id="toggleAll" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                تحديد الكل
+                            </button>
+                        </div>
+
+                        <div class="border rounded-3 p-3 mb-4" style="max-height: 340px; overflow-y: auto;">
+                            @foreach (var student in Model.Students)
+                            {
+                                <div class="form-check py-1">
+                                    <input class="form-check-input student-check" type="checkbox"
+                                           name="SelectedStudentIds" value="@student.Id" id="student-@student.Id" />
+                                    <label class="form-check-label" for="student-@student.Id">
+                                        <strong>@student.FullName</strong>
+                                        @if (!string.IsNullOrWhiteSpace(student.University))
+                                        {
+                                            <span class="text-muted small"> — @student.University</span>
+                                        }
+                                    </label>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-controller="Courses" asp-action="Details" asp-route-id="@Model.CourseId" class="btn btn-light rounded-pill px-4">إلغاء</a>
+                            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                                <i class="bi bi-check-lg me-1"></i> تسجيل الطلاب المختارين
+                            </button>
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var button = document.getElementById('toggleAll');
+            if (!button) return;
+
+            button.addEventListener('click', function () {
+                var boxes = document.querySelectorAll('.student-check');
+                var allChecked = Array.prototype.every.call(boxes, function (b) { return b.checked; });
+                Array.prototype.forEach.call(boxes, function (b) { b.checked = !allChecked; });
+                button.textContent = allChecked ? 'تحديد الكل' : 'إلغاء التحديد';
+            });
+        })();
+    </script>
+}

@@ -1,0 +1,45 @@
+@model Department
+@{
+    ViewData["Title"] = "تفاصيل القسم - " + Model.Name;
+}
+
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 mb-2">قسم</span>
+            <h3 class="fw-bold mb-1">@Model.Name</h3>
+            <p class="text-muted mb-0">@(string.IsNullOrWhiteSpace(Model.Description) ? "لا يوجد وصف مسجل لهذا القسم." : Model.Description)</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
+            <i class="bi bi-arrow-right me-1"></i> عودة للقائمة
+        </a>
+    </div>
+</div>
+
+<h5 class="fw-bold mb-3"><i class="bi bi-person-badge text-primary me-2"></i>محاضرو القسم (@(Model.Instructors?.Count ?? 0))</h5>
+
+@if (Model.Instructors == null || !Model.Instructors.Any())
+{
+    <div class="alert alert-light border rounded-4 text-center p-4">لا يوجد محاضرون في هذا القسم حتى الآن.</div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var instructor in Model.Instructors)
+        {
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="fw-bold mb-1">@instructor.FullName</h6>
+                            <span class="text-muted small">@instructor.Specialization</span>
+                        </div>
+                        <a asp-controller="Instructors" asp-action="Details" asp-route-id="@instructor.Id" class="btn btn-sm btn-primary rounded-pill px-3">
+                            فتح الملف
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

@@ -1,0 +1,145 @@
+@model ManageUsersViewModel
+@{
+    ViewData["Title"] = "إدارة المستخدمين";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h3 class="fw-bold mb-1"><i class="bi bi-shield-lock text-primary me-2"></i>إدارة المستخدمين</h3>
+        <p class="text-muted small mb-0">حسابات الأدمن اللي بتدخل على اللوحة — إضافة وحذف وتغيير كلمة المرور</p>
+    </div>
+    <a asp-action="ChangePassword" class="btn btn-outline-secondary rounded-pill px-4">
+        <i class="bi bi-key me-1"></i> تغيير كلمة مروري
+    </a>
+</div>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger rounded-4 border-0 shadow-sm">
+        <div asp-validation-summary="All" class="mb-0"></div>
+    </div>
+}
+
+<div class="row g-4">
+    <!-- قائمة المستخدمين -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="card-header bg-white border-0 py-3">
+                <h6 class="fw-bold mb-0">
+                    <i class="bi bi-people me-1"></i> كل المستخدمين
+                    <span class="badge bg-secondary rounded-pill ms-1">@Model.Users.Count</span>
+                </h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>البريد الإلكتروني</th>
+                            <th>الاسم</th>
+                            <th>الدور</th>
+                            <th>الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Model.Users)
+                        {
+                            <tr>
+                                <td class="small">
+                                    @user.Email
+                                    @if (user.IsCurrentUser)
+                                    {
+                                        <span class="badge bg-info text-dark rounded-pill ms-1">أنت</span>
+                                    }
+                                </td>
+                                <td class="small text-muted">
+                                    @(string.IsNullOrWhiteSpace(user.FullName) ? "-" : user.FullName)
+                                </td>
+                                <td>
+                                    @if (user.Role == "Admin")
+                                    {
+                                        <span class="badge bg-danger rounded-pill">Admin</span>
+                                    }
+                                    else if (user.Role == "Instructor")
+                                    {
+                                        <span class="badge bg-info text-dark rounded-pill">Instructor</span>
+                                    }
+                                    else if (user.Role == "Student")
+                                    {
+                                        <span class="badge bg-success rounded-pill">Student</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary rounded-pill">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (user.IsCurrentUser)
+                                    {
+                                        <span class="text-muted small">-</span>
+                                    }
+                                    else
+                                    {
+                                        @* الطالب بياخد إجراء خاص يحذف الـStudent مع الحساب *@
+                                        var action = user.Role == "Student" ? "DeleteStudentAccount" : "DeleteAdmin";
+                                        <form asp-action="@action" asp-route-id="@user.Id" method="post" class="d-inline"
+                                              onsubmit="return confirm('متأكد إنك عايز تحذف الحساب (@user.Email)؟ الحذف نهائي.');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                                <i class="bi bi-trash me-1"></i> حذف
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- فورم الإضافة -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white border-0 py-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-person-plus me-1"></i> إضافة أدمن جديد</h6>
+            </div>
+            <div class="card-body">
+                @*
+                    الفورم بيبعت CreateAdminViewModel مباشرة — أسماء الحقول
+                    (Email / FullName / Password) هي نفس أسماء بروبرتيز الموديل.
+                *@
+                <form asp-action="CreateAdmin" method="post" autocomplete="off">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label asp-for="NewAdmin.Email" class="form-label fw-semibold small"></label>
+                        <input name="Email" value="@Model.NewAdmin.Email" class="form-control" type="email" placeholder="name@example.com" />
+                        <span asp-validation-for="NewAdmin.Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="NewAdmin.FullName" class="form-label fw-semibold small"></label>
+                        <input name="FullName" value="@Model.NewAdmin.FullName" class="form-control" placeholder="مدير النظام" />
+                        <span asp-validation-for="NewAdmin.FullName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="NewAdmin.Password" class="form-label fw-semibold small"></label>
+                        <input name="Password" class="form-control" type="password" autocomplete="new-password" />
+                        <span asp-validation-for="NewAdmin.Password" class="text-danger small"></span>
+                        <div class="form-text">6 حروف على الأقل. المستخدم يقدر يغيّرها بعد أول دخول.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill">
+                        <i class="bi bi-check-lg me-1"></i> إضافة الأدمن
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
