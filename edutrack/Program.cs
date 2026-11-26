@@ -2,6 +2,7 @@ using EduTrack.Data;
 using EduTrack.Models;
 using EduTrack.Models.Options;
 using EduTrack.Services;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -77,6 +78,32 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Account/AccessDenied";
 });
+
+// 3.1) مفاتيح تشفير الكوكيز بتتحفظ على القرص.
+// من غير كده المفاتيح بتتولد من جديد مع كل restart، وكل المستخدمين بيطردوا.
+// المسار ده جوه الموقع وبيتكتب عليه، فبيشتغل على الاستضافة.
+var keysPath = builder.Configuration["DataProtection:KeysPath"];
+
+if (string.IsNullOrWhiteSpace(keysPath))
+{
+    keysPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "keys");
+}
+
+keysPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, keysPath));
+
+try
+{
+    Directory.CreateDirectory(keysPath);
+
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
+        .SetApplicationName("EduTrack");
+}
+catch (Exception ex)
+{
+    // لو المجلد مش قابل للكتابة، التطبيق يفضل يشتغل (بس المستخدمين هيطردوا مع كل restart)
+    Console.Error.WriteLine($"تعذر تجهيز مجلد مفاتيح التشفير ({keysPath}): {ex.Message}");
+}
 
 var app = builder.Build();
 
