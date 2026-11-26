@@ -51,9 +51,14 @@
                 }
             </div>
         </div>
-        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
-            <i class="bi bi-arrow-right me-1"></i> عودة للقائمة
-        </a>
+        <div class="d-flex gap-2">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary rounded-pill px-4">
+                <i class="bi bi-pencil-square me-1"></i> تعديل البيانات والصورة
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
+                <i class="bi bi-arrow-right me-1"></i> عودة للقائمة
+            </a>
+        </div>
     </div>
 </div>
 

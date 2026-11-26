@@ -115,17 +115,38 @@ if (app.Urls.Any(url => url.StartsWith("https", StringComparison.OrdinalIgnoreCa
 // أي كود حالة (404/403/500) يظهر صفحة عربية مفهومة بدل صفحة بيضاء فاضية
 app.UseStatusCodePagesWithReExecute("/Home/Status", "?code={0}");
 
+// الملفات الثابتة (CSS/JS/lib) + الملفات المرفوعة وقت التشغيل.
+// بنستخدم UseStaticFiles بدل MapStaticAssets عشان الملفات اللي بتترفع
+// بعد الـ build (صور المحاضرين/الكورسات، ملفات التسليم) تتخدم برضه.
+app.UseStaticFiles();
+
+// الـ wwwroot الافتراضي مش هيغطي /images و /uploads لو الملفات اتخزنت
+// خارج المجلد — بس هنا التخزين جوه wwwroot، فالـ UseStaticFiles فوق كفاية.
+// السطور دي بتبقى احتياط لو اتغير RootFolder في المستقبل.
+var storageRoot = builder.Configuration["FileStorage:RootFolder"];
+if (!string.IsNullOrWhiteSpace(storageRoot))
+{
+    var physical = Path.Combine(app.Environment.ContentRootPath, storageRoot);
+    Directory.CreateDirectory(physical);
+
+    foreach (var subPath in new[] { "/images", "/uploads" })
+    {
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(physical),
+            RequestPath = subPath
+        });
+    }
+}
+
 app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
-
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 // 4) تطبيق أي Migrations ناقصة — من غير ما يوقف التطبيق لو قاعدة البيانات مش متاحة
 using (var scope = app.Services.CreateScope())

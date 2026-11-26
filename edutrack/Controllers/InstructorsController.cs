@@ -178,6 +178,132 @@ namespace EduTrack.Controllers
         }
 
         // ============================================================
+        // 3.5 تعديل المحاضر — GET
+        // ============================================================
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var instructor = await _context.Instructors
+                .Include(i => i.User)
+                .FirstOrDefaultAsync(i => i.Id == id);
+
+            if (instructor == null)
+            {
+                return NotFound();
+            }
+
+            ViewBag.Departments = new SelectList(
+                await _context.Departments.OrderBy(d => d.Name).ToListAsync(),
+                "Id", "Name", instructor.DepartmentId);
+
+            var model = new EditInstructorViewModel
+            {
+                Id = instructor.Id,
+                FullName = instructor.FullName,
+                Specialization = instructor.Specialization,
+                Bio = instructor.Bio,
+                DepartmentId = instructor.DepartmentId,
+                ExistingImagePath = instructor.ImagePath
+            };
+
+            ViewBag.Email = instructor.User?.Email;
+
+            return View(model);
+        }
+
+        // ============================================================
+        // 3.6 تعديل المحاضر — POST
+        // ============================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequestSizeLimit(6 * 1024 * 1024)]
+        public async Task<IActionResult> Edit(EditInstructorViewModel model)
+        {
+            var instructor = await _context.Instructors
+                .Include(i => i.User)
+                .FirstOrDefaultAsync(i => i.Id == model.Id);
+
+            if (instructor == null)
+            {
+                return NotFound();
+            }
+
+            if (model.ProfileImage != null)
+            {
+                var check = FileStorageService.Validate(
+                    model.ProfileImage, FileStorageService.ImageExtensions, FileStorageService.ImageMaxBytes);
+
+                if (!check.Success)
+                {
+                    ModelState.AddModelError(nameof(model.ProfileImage), check.Error!);
+                }
+            }
+
+            if (model.DepartmentId.HasValue &&
+                !await _context.Departments.AnyAsync(d => d.Id == model.DepartmentId))
+            {
+                ModelState.AddModelError(nameof(model.DepartmentId), "القسم المختار غير موجود.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                model.ExistingImagePath = instructor.ImagePath;
+                ViewBag.Email = instructor.User?.Email;
+                ViewBag.Departments = new SelectList(
+                    await _context.Departments.OrderBy(d => d.Name).ToListAsync(),
+                    "Id", "Name", model.DepartmentId);
+
+                return View(model);
+            }
+
+            // الصورة الجديدة بتتحفظ الأول، والقديمة بتتمسح بعدها بس
+            if (model.ProfileImage != null)
+            {
+                string? oldImage = instructor.ImagePath;
+
+                instructor.ImagePath = await _files.SaveAsync(
+                    model.ProfileImage, _storage.InstructorImagesFolder);
+
+                _files.Delete(oldImage, _storage.InstructorImagesFolder);
+            }
+
+            instructor.FullName = model.FullName;
+            instructor.Specialization = model.Specialization;
+            instructor.Bio = model.Bio;
+            instructor.DepartmentId = model.DepartmentId;
+
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = $"تم تحديث بيانات المحاضر ({instructor.FullName}) بنجاح.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // ============================================================
+        // 3.7 حذف صورة المحاضر فقط — POST
+        // ============================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveImage(int id)
+        {
+            var instructor = await _context.Instructors.FindAsync(id);
+
+            if (instructor == null)
+            {
+                return NotFound();
+            }
+
+            if (!string.IsNullOrEmpty(instructor.ImagePath))
+            {
+                _files.Delete(instructor.ImagePath, _storage.InstructorImagesFolder);
+                instructor.ImagePath = null;
+                await _context.SaveChangesAsync();
+            }
+
+            TempData["Success"] = "تم حذف صورة المحاضر.";
+            return RedirectToAction(nameof(Edit), new { id });
+        }
+
+        // ============================================================
         // 3.5 حذف محاضر — POST
         // يمنع الحذف لو فيه كورسات، ويشيل الحساب والصورة معاه
         // ============================================================
