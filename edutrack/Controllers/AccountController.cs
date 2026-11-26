@@ -1,6 +1,7 @@
 ﻿using EduTrack.Data;
 using EduTrack.Models;
 using EduTrack.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -217,6 +218,161 @@ namespace EduTrack.Controllers
         public IActionResult AccessDenied()
         {
             return View();
+        }
+
+        // ============================================================
+        // 5. بياناتي — الطالب يعدّل بياناته الشخصية
+        // ============================================================
+        [Authorize]
+        [HttpGet]
+        public async Task<IActionResult> Profile()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction(nameof(Login));
+            }
+
+            // بيانات الطالب المرتبطة بالحساب (لو موجود)
+            var student = await _context.Students
+                .Include(s => s.Course)
+                .FirstOrDefaultAsync(s => s.UserId == user.Id);
+
+            var model = new StudentProfileViewModel
+            {
+                FullName = student?.FullName ?? user.FullName,
+                PhoneNumber = student?.PhoneNumber ?? user.PhoneNumber ?? string.Empty,
+                University = student?.University,
+                Email = user.Email,
+                CourseTitle = student?.Course?.Title
+            };
+
+            ViewBag.HasStudentRecord = student != null;
+            ViewBag.IsStudent = User.IsInRole("Student");
+
+            return View(model);
+        }
+
+        // ============================================================
+        // 6. بياناتي — حفظ التعديلات
+        // ============================================================
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Profile(StudentProfileViewModel model)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction(nameof(Login));
+            }
+
+            var student = await _context.Students
+                .Include(s => s.Course)
+                .FirstOrDefaultAsync(s => s.UserId == user.Id);
+
+            if (!ModelState.IsValid)
+            {
+                model.Email = user.Email;
+                model.CourseTitle = student?.Course?.Title;
+                ViewBag.HasStudentRecord = student != null;
+                ViewBag.IsStudent = User.IsInRole("Student");
+
+                return View(model);
+            }
+
+            // 1) سجل الطالب (لو موجود)
+            if (student != null)
+            {
+                student.FullName = model.FullName;
+                student.PhoneNumber = model.PhoneNumber;
+                student.University = model.University;
+            }
+
+            // 2) حساب الدخول — الاسم بيتزامن عشان يظهر صح في كل الصفحات
+            user.FullName = model.FullName;
+
+            if (!string.IsNullOrWhiteSpace(model.PhoneNumber))
+            {
+                user.PhoneNumber = model.PhoneNumber;
+            }
+
+            var update = await _userManager.UpdateAsync(user);
+            if (!update.Succeeded)
+            {
+                foreach (var error in update.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+
+                model.Email = user.Email;
+                model.CourseTitle = student?.Course?.Title;
+                ViewBag.HasStudentRecord = student != null;
+                ViewBag.IsStudent = User.IsInRole("Student");
+
+                return View(model);
+            }
+
+            if (student != null)
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            TempData["Success"] = "تم تحديث بياناتك بنجاح.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        // ============================================================
+        // 7. تغيير كلمة المرور (لأي مستخدم مسجل)
+        // ============================================================
+        [Authorize]
+        [HttpGet]
+        public IActionResult ChangePassword()
+        {
+            return View(new ChangeOwnPasswordViewModel());
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(ChangeOwnPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction(nameof(Login));
+            }
+
+            var result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
+
+            if (!result.Succeeded)
+            {
+                foreach (var error in result.Errors)
+                {
+                    // رسائل Identity بالإنجليزي — بنترجم أشهرها
+                    string message = error.Code switch
+                    {
+                        "PasswordMismatch" => "كلمة المرور الحالية غير صحيحة.",
+                        "PasswordTooShort" => "كلمة المرور الجديدة قصيرة جدًا.",
+                        _ => error.Description
+                    };
+
+                    ModelState.AddModelError(string.Empty, message);
+                }
+
+                return View(model);
+            }
+
+            // نسجل دخول بالكلمة الجديدة عشان مايتطردش من الموقع
+            await _signInManager.RefreshSignInAsync(user);
+
+            TempData["Success"] = "تم تغيير كلمة المرور بنجاح.";
+            return RedirectToAction(nameof(Profile));
         }
     }
 }

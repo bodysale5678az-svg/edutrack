@@ -1,0 +1,88 @@
+@model StudentProfileViewModel
+@{
+    ViewData["Title"] = "بياناتي";
+    bool hasStudentRecord = ViewBag.HasStudentRecord == true;
+    bool isStudent = ViewBag.IsStudent == true;
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="bi bi-person-circle text-primary me-2"></i>بياناتي</h3>
+                <p class="text-muted small mb-0">تعديل بياناتك الشخصية وكلمة المرور</p>
+            </div>
+            <a asp-action="ChangePassword" class="btn btn-outline-primary rounded-pill px-4">
+                <i class="bi bi-key me-1"></i> تغيير كلمة المرور
+            </a>
+        </div>
+
+        @if (isStudent && !hasStudentRecord)
+        {
+            <div class="alert alert-warning border-0 rounded-4 small">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                حسابك مش مربوط بسجل طالب، فالتعديل هنا بيحفظ الاسم ورقم الهاتف في الحساب بس.
+                كلّم الأدمن يربط حسابك.
+            </div>
+        }
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <form asp-action="Profile" method="post">
+                    <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FullName" class="form-label fw-semibold"></label>
+                            <input asp-for="FullName" class="form-control" />
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label fw-semibold"></label>
+                            <input asp-for="PhoneNumber" class="form-control" dir="ltr" style="text-align:end;" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="University" class="form-label fw-semibold"></label>
+                            <input asp-for="University" class="form-control" />
+                            <span asp-validation-for="University" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">البريد الإلكتروني</label>
+                            <input value="@Model.Email" class="form-control" disabled />
+                            <div class="form-text">البريد هو اسم الدخول — مش بيتغير من هنا.</div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.CourseTitle))
+                        {
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">الكورس المسجل فيه</label>
+                                <div class="form-control bg-light">
+                                    <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-1">
+                                        <i class="bi bi-journal-code me-1"></i>@Model.CourseTitle
+                                    </span>
+                                </div>
+                                <div class="form-text">الكورس بيتغير عن طريق الأدمن.</div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-light rounded-pill px-4">إلغاء</a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                            <i class="bi bi-save me-1"></i> حفظ التعديلات
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
