@@ -18,18 +18,79 @@ namespace EduTrack.Controllers
         }
 
         // ============================================================
-        // كل التسجيلات
+        // كل التسجيلات — من المصدرين:
+        //   1) Student.CourseId (التسجيل الأساسي وقت إنشاء الحساب)
+        //   2) جدول Enrollments (تسجيل إضافي في كورسات تانية)
+        // قبل كده الصفحة كانت بتقرأ Enrollments بس، فالطالب اللي سجّل
+        // من صفحة Register (ومحطوط كورسه في CourseId) ما كانش يظهر خالص.
         // ============================================================
         [HttpGet]
         public async Task<IActionResult> Index()
         {
+            // 1) التسجيلات الإضافية
             var enrollments = await _context.Enrollments
                 .Include(e => e.Student)
+                    .ThenInclude(s => s!.User)
                 .Include(e => e.Course)
                 .OrderByDescending(e => e.EnrolledOn)
                 .ToListAsync();
 
-            return View(enrollments);
+            var rows = new List<EnrollmentRowViewModel>();
+
+            foreach (var enrollment in enrollments)
+            {
+                rows.Add(new EnrollmentRowViewModel
+                {
+                    EnrollmentId = enrollment.Id,
+                    StudentId = enrollment.StudentId,
+                    StudentName = enrollment.Student?.FullName ?? "-",
+                    StudentEmail = enrollment.Student?.User?.Email,
+                    CourseId = enrollment.CourseId,
+                    CourseTitle = enrollment.Course?.Title ?? "-",
+                    EnrolledOn = enrollment.EnrolledOn,
+                    IsPrimary = false
+                });
+            }
+
+            // 2) التسجيل الأساسي (CourseId على الطالب)
+            var primary = await _context.Students
+                .Include(s => s.User)
+                .Include(s => s.Course)
+                .Where(s => s.CourseId > 0 && s.Course != null)
+                .ToListAsync();
+
+            foreach (var student in primary)
+            {
+                // لو نفس الطالب مسجل في نفس الكورس في Enrollments كمان، الأساسي بيكسب (منع التكرار)
+                bool duplicate = rows.Any(r =>
+                    r.StudentId == student.Id && r.CourseId == student.CourseId);
+
+                if (duplicate)
+                {
+                    continue;
+                }
+
+                rows.Add(new EnrollmentRowViewModel
+                {
+                    EnrollmentId = null,
+                    StudentId = student.Id,
+                    StudentName = student.FullName,
+                    StudentEmail = student.User?.Email,
+                    CourseId = student.CourseId,
+                    CourseTitle = student.Course?.Title ?? "-",
+                    EnrolledOn = null,
+                    IsPrimary = true
+                });
+            }
+
+            // الأساسي الأول، وبعدين الأحدث
+            var ordered = rows
+                .OrderByDescending(r => r.IsPrimary)
+                .ThenByDescending(r => r.EnrolledOn ?? DateTime.MinValue)
+                .ThenBy(r => r.StudentName)
+                .ToList();
+
+            return View(ordered);
         }
 
         // ============================================================

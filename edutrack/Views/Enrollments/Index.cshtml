@@ -1,17 +1,37 @@
-@model IEnumerable<Enrollment>
+@model IEnumerable<EnrollmentRowViewModel>
 @{
     ViewData["Title"] = "كل التسجيلات";
+    var rows = Model.ToList();
+    int primaryCount = rows.Count(r => r.IsPrimary);
+    int extraCount = rows.Count - primaryCount;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h3 class="fw-bold mb-1"><i class="bi bi-link-45deg text-primary me-2"></i>كل التسجيلات</h3>
-        <p class="text-muted small mb-0">ربط الطلاب بالكورسات — الطالب ممكن يكون مسجل في أكتر من كورس</p>
+        <p class="text-muted small mb-0">
+            ربط الطلاب بالكورسات — الطالب ممكن يكون مسجل في أكتر من كورس
+        </p>
     </div>
     <a asp-controller="Courses" asp-action="Index" class="btn btn-outline-primary rounded-pill px-4">
         <i class="bi bi-journal-code me-1"></i> اختار كورس للتسجيل
     </a>
 </div>
+
+@if (rows.Count > 0)
+{
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-2">
+            <i class="bi bi-person-check me-1"></i> تسجيل أساسي: @primaryCount
+        </span>
+        <span class="badge bg-success-subtle text-success-emphasis rounded-pill px-3 py-2">
+            <i class="bi bi-plus-circle me-1"></i> تسجيل إضافي: @extraCount
+        </span>
+        <span class="badge bg-light text-dark border rounded-pill px-3 py-2">
+            الإجمالي: @rows.Count
+        </span>
+    </div>
+}
 
 <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
     <div class="table-responsive">
@@ -21,40 +41,75 @@
                     <th>#</th>
                     <th>الطالب</th>
                     <th>الكورس</th>
+                    <th>النوع</th>
                     <th>تاريخ التسجيل</th>
                     <th>الإجراء</th>
                 </tr>
             </thead>
             <tbody>
-                @if (!Model.Any())
+                @if (rows.Count == 0)
                 {
                     <tr>
-                        <td colspan="5" class="text-center py-4 text-muted">
-                            لا توجد تسجيلات حتى الآن. افتح كورس وضغط "تسجيل طلاب".
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            لا توجد تسجيلات حتى الآن. الطالب يقدر يسجل من صفحة "تسجيل طالب جديد"،
+                            أو اضغط "تسجيل طلاب" جوه الكورس.
                         </td>
                     </tr>
                 }
                 else
                 {
-                    @foreach (var enrollment in Model)
+                    @for (int i = 0; i < rows.Count; i++)
                     {
+                        var row = rows[i];
                         <tr>
-                            <td>@enrollment.Id</td>
-                            <td class="fw-bold">@(enrollment.Student?.FullName ?? "-")</td>
+                            <td>@(i + 1)</td>
+                            <td>
+                                <div class="fw-bold">@row.StudentName</div>
+                                @if (!string.IsNullOrEmpty(row.StudentEmail))
+                                {
+                                    <div class="small text-muted">@row.StudentEmail</div>
+                                }
+                            </td>
                             <td>
                                 <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1">
-                                    @(enrollment.Course?.Title ?? "-")
+                                    @row.CourseTitle
                                 </span>
                             </td>
-                            <td class="small">@enrollment.EnrolledOn.ToString("yyyy/MM/dd")</td>
                             <td>
-                                <form asp-action="Remove" asp-route-id="@enrollment.Id" method="post" class="d-inline"
-                                      onsubmit="return confirm('إلغاء تسجيل هذا الطالب من الكورس؟');">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
-                                        <i class="bi bi-x-circle me-1"></i> إلغاء التسجيل
-                                    </button>
-                                </form>
+                                @if (row.IsPrimary)
+                                {
+                                    <span class="badge bg-primary rounded-pill">
+                                        <i class="bi bi-star-fill me-1"></i> أساسي
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success rounded-pill">
+                                        <i class="bi bi-plus-lg me-1"></i> إضافي
+                                    </span>
+                                }
+                            </td>
+                            <td class="small">
+                                @(row.EnrolledOn.HasValue ? row.EnrolledOn.Value.ToString("yyyy/MM/dd") : "—")
+                            </td>
+                            <td>
+                                @if (row.IsPrimary)
+                                {
+                                    <span class="small text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        يُدار من بيانات الطالب
+                                    </span>
+                                }
+                                else if (row.EnrollmentId.HasValue)
+                                {
+                                    <form asp-action="Remove" asp-route-id="@row.EnrollmentId" method="post" class="d-inline"
+                                          onsubmit="return confirm('إلغاء تسجيل هذا الطالب من الكورس؟');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                            <i class="bi bi-x-circle me-1"></i> إلغاء التسجيل
+                                        </button>
+                                    </form>
+                                }
                             </td>
                         </tr>
                     }
@@ -62,4 +117,10 @@
             </tbody>
         </table>
     </div>
+</div>
+
+<div class="alert alert-light border rounded-4 mt-3 small text-muted">
+    <i class="bi bi-info-circle me-1"></i>
+    <strong>تسجيل أساسي</strong> = الكورس اللي الطالب اختاره وقت إنشاء حسابه.
+    <strong>تسجيل إضافي</strong> = تسجيل في كورس إضافي من صفحة "تسجيل طلاب" جوه الكورس.
 </div>
