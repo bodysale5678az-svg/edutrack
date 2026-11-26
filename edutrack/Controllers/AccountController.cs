@@ -233,10 +233,18 @@ namespace EduTrack.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
-            // بيانات الطالب المرتبطة بالحساب (لو موجود)
-            var student = await _context.Students
-                .Include(s => s.Course)
-                .FirstOrDefaultAsync(s => s.UserId == user.Id);
+            bool isStudent = User.IsInRole("Student");
+
+            // بيانات الطالب المرتبطة بالحساب — للطالب بس.
+            // الأدمن والمحاضر مالهمش سجل طالب، فمفيش جامعة ولا كورس في صفحتهم.
+            Student? student = null;
+
+            if (isStudent)
+            {
+                student = await _context.Students
+                    .Include(s => s.Course)
+                    .FirstOrDefaultAsync(s => s.UserId == user.Id);
+            }
 
             var model = new StudentProfileViewModel
             {
@@ -248,7 +256,7 @@ namespace EduTrack.Controllers
             };
 
             ViewBag.HasStudentRecord = student != null;
-            ViewBag.IsStudent = User.IsInRole("Student");
+            ViewBag.IsStudent = isStudent;
 
             return View(model);
         }
@@ -267,16 +275,30 @@ namespace EduTrack.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
-            var student = await _context.Students
-                .Include(s => s.Course)
-                .FirstOrDefaultAsync(s => s.UserId == user.Id);
+            bool isStudent = User.IsInRole("Student");
+
+            // الجامعة والكورس للطالب بس — الأدمن والمحاضر مالهمش سجل طالب
+            Student? student = null;
+
+            if (isStudent)
+            {
+                student = await _context.Students
+                    .Include(s => s.Course)
+                    .FirstOrDefaultAsync(s => s.UserId == user.Id);
+            }
+            else
+            {
+                // حتى لو حقل الجامعة اتبعت من برّه، بيتجاهل للأدمن والمحاضر
+                model.University = null;
+                ModelState.Remove(nameof(model.University));
+            }
 
             if (!ModelState.IsValid)
             {
                 model.Email = user.Email;
                 model.CourseTitle = student?.Course?.Title;
                 ViewBag.HasStudentRecord = student != null;
-                ViewBag.IsStudent = User.IsInRole("Student");
+                ViewBag.IsStudent = isStudent;
 
                 return View(model);
             }
@@ -308,7 +330,7 @@ namespace EduTrack.Controllers
                 model.Email = user.Email;
                 model.CourseTitle = student?.Course?.Title;
                 ViewBag.HasStudentRecord = student != null;
-                ViewBag.IsStudent = User.IsInRole("Student");
+                ViewBag.IsStudent = isStudent;
 
                 return View(model);
             }
