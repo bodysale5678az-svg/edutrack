@@ -71,87 +71,10 @@ namespace EduTrack.Data
                 }
             }
 
-            // إضافة قسم (لو مفيش)
-            Department? defaultDepartment = await context.Departments
-                .FirstOrDefaultAsync(d => d.Name == DbSeeder.DemoDepartmentName);
+            // ملاحظة: تم إيقاف زرع البيانات التجريبية (قسم + محاضر + كورس).
+            // النظام يبدأ نظيف: الأدمن والأدوار فقط، وباقي البيانات تُضاف من الواجهة.
 
-            if (defaultDepartment == null)
-            {
-                defaultDepartment = new Department
-                {
-                    Name = DbSeeder.DemoDepartmentName,
-                    Description = "قسم بيضم محاضري تطوير الويب والـ .NET."
-                };
-
-                context.Departments.Add(defaultDepartment);
-                await context.SaveChangesAsync();
-            }
-
-            if (await context.Instructors.AnyAsync())
-            {
-                // ربط المحاضرين القدامى بالقسم لو لسه بدون قسم
-                var unassigned = await context.Instructors
-                    .Where(i => i.DepartmentId == null)
-                    .ToListAsync();
-
-                if (unassigned.Count > 0)
-                {
-                    foreach (var existing in unassigned)
-                    {
-                        existing.DepartmentId = defaultDepartment.Id;
-                    }
-
-                    await context.SaveChangesAsync();
-                }
-
-                return;
-            }
-
-            var instructorUser = await userManager.FindByEmailAsync(DbSeeder.InstructorEmail);
-            if (instructorUser == null)
-            {
-                instructorUser = new ApplicationUser
-                {
-                    UserName = DbSeeder.InstructorEmail,
-                    Email = DbSeeder.InstructorEmail,
-                    EmailConfirmed = true,
-                    FullName = "محاضر تجريبي"
-                };
-
-                var created = await userManager.CreateAsync(instructorUser, adminPassword);
-                if (!created.Succeeded)
-                {
-                    logger.LogWarning("لم يتم إنشاء حساب المحاضر التجريبي: {Errors}",
-                        string.Join(" | ", created.Errors.Select(e => e.Description)));
-                    return;
-                }
-
-                await userManager.AddToRoleAsync(instructorUser, "Instructor");
-            }
-
-            var instructor = new Instructor
-            {
-                FullName = "محاضر تجريبي",
-                Specialization = "تطوير الويب",
-                Bio = "حساب تجريبي أُنشئ تلقائيًا لتجربة إنشاء الكورسات.",
-                UserId = instructorUser.Id,
-                DepartmentId = defaultDepartment.Id
-            };
-
-            context.Instructors.Add(instructor);
-            await context.SaveChangesAsync();
-
-            context.Courses.Add(new Course
-            {
-                Title = "كورس تجريبي: ASP.NET Core MVC",
-                Description = "كورس تجريبي أُنشئ تلقائيًا عند أول تشغيل للتأكد من أن الإضافة تعمل.",
-                TotalHours = 40,
-                InstructorId = instructor.Id
-            });
-
-            await context.SaveChangesAsync();
-
-            logger.LogInformation("تم زرع بيانات البداية (محاضر + كورس تجريبي).");
+            logger.LogInformation("تم تهيئة قاعدة البيانات (Roles + Admins). لا يوجد زرع بيانات تجريبية.");
         }
     }
 }

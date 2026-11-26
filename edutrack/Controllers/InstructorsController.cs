@@ -176,5 +176,53 @@ namespace EduTrack.Controllers
             TempData["Success"] = $"تم إضافة المحاضر {model.FullName} وإنشاء حسابه بنجاح!";
             return RedirectToAction(nameof(Index));
         }
+
+        // ============================================================
+        // 3.5 حذف محاضر — POST
+        // يمنع الحذف لو فيه كورسات، ويشيل الحساب والصورة معاه
+        // ============================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var instructor = await _context.Instructors
+                .Include(i => i.Courses)
+                .FirstOrDefaultAsync(i => i.Id == id);
+
+            if (instructor == null)
+            {
+                return NotFound();
+            }
+
+            if (instructor.Courses.Count > 0)
+            {
+                TempData["Error"] =
+                    $"لا يمكن حذف المحاضر ({instructor.FullName}) لأنه مسؤول عن {instructor.Courses.Count} كورس. احذف أو انقل الكورسات الأول.";
+
+                return RedirectToAction(nameof(Index));
+            }
+
+            // الصورة والربط بالحساب لازم يتشالوا قبل السجل نفسه
+            _files.Delete(instructor.ImagePath, _storage.InstructorImagesFolder);
+
+            string? userId = instructor.UserId;
+
+            _context.Instructors.Remove(instructor);
+            await _context.SaveChangesAsync();
+
+            // حساب الدخول لو موجود ومش مستخدم في حاجة تانية
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var user = await _userManager.FindByIdAsync(userId);
+
+                if (user != null && !await _context.Students.AnyAsync(s => s.UserId == userId))
+                {
+                    await _userManager.DeleteAsync(user);
+                }
+            }
+
+            TempData["Success"] = $"تم حذف المحاضر ({instructor.FullName}) نهائيًا.";
+            return RedirectToAction(nameof(Index));
+        }
     }
 }

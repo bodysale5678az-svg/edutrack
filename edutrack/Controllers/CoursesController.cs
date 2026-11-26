@@ -248,6 +248,44 @@ namespace EduTrack.Controllers
         }
 
         // ============================================================
+        // حذف الكورس — POST (ممنوع لو فيه طلاب أو تاسكات)
+        // ============================================================
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var course = await _context.Courses
+                .Include(c => c.Students)
+                .Include(c => c.Enrollments)
+                .Include(c => c.Assignments)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (course == null)
+            {
+                return NotFound();
+            }
+
+            int studentsCount = course.Students.Count + course.Enrollments.Count;
+
+            if (studentsCount > 0 || course.Assignments.Count > 0)
+            {
+                TempData["Error"] =
+                    $"لا يمكن حذف الكورس ({course.Title}) لأنه فيه {studentsCount} طالب و{course.Assignments.Count} تاسك. احذفهم الأول أو انقلهم لكورس تاني.";
+
+                return RedirectToAction(nameof(Index));
+            }
+
+            _files.Delete(course.ThumbnailPath, _storage.CourseImagesFolder);
+
+            _context.Courses.Remove(course);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = $"تم حذف الكورس ({course.Title}) نهائيًا.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // ============================================================
         // 4.6 لوحة الكورس والتاسكات — GET
         // ============================================================
         [HttpGet]

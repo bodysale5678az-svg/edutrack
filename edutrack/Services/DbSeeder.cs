@@ -3,12 +3,10 @@ using EduTrack.Models.Options;
 namespace EduTrack.Services
 {
     /// <summary>
-    /// بيانات البداية المستخدمة للتجربة (Roles + Admins + محاضر + كورس).
+    /// بيانات الدخول الأساسية للنظام (Admins فقط — لا يوجد زرع بيانات تجريبية).
     /// </summary>
     public static class DbSeeder
     {
-        public const string InstructorEmail = "instructor@edutrack.com";
-        public const string DemoDepartmentName = "قسم تطوير الويب";
         public const string DefaultAdminFullName = "مدير النظام";
 
         /// <summary>

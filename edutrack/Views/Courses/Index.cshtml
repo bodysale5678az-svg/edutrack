@@ -85,6 +85,12 @@ else
                                 <a asp-action="Edit" asp-route-id="@course.Id" class="btn btn-outline-secondary rounded-pill" title="تعديل">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                <form asp-action="Delete" asp-route-id="@course.Id" method="post"
+                                      onsubmit="return confirm('هل تريد حذف الكورس «@course.Title» نهائيًا؟ العملية لا يمكن التراجع عنها.');">
+                                    <button type="submit" class="btn btn-outline-danger rounded-pill" title="حذف">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                             }
                         </div>
                     </div>
