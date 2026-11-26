@@ -36,13 +36,14 @@
                     <th>الجامعة</th>
                     <th>الكورس المسجل به</th>
                     <th>التسليمات</th>
+                    <th>الإجراء</th>
                 </tr>
             </thead>
             <tbody>
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="7" class="text-center py-4 text-muted">لا يوجد طلاب مسجلون حتى الآن.</td>
+                        <td colspan="8" class="text-center py-4 text-muted">لا يوجد طلاب مسجلون حتى الآن.</td>
                     </tr>
                 }
                 else
@@ -62,6 +63,18 @@
                             </td>
                             <td>
                                 <span class="badge bg-secondary rounded-pill">@(student.Submissions?.Count ?? 0) تسليم</span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a asp-action="Details" asp-route-id="@student.Id"
+                                       class="btn btn-sm btn-outline-primary rounded-pill" title="ملف الطالب">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@student.Id"
+                                       class="btn btn-sm btn-outline-secondary rounded-pill" title="تعديل">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     }

@@ -95,20 +95,32 @@
                             <td>
                                 @if (row.IsPrimary)
                                 {
-                                    <span class="small text-muted">
-                                        <i class="bi bi-info-circle me-1"></i>
-                                        يُدار من بيانات الطالب
-                                    </span>
+                                    <div class="d-flex gap-1 align-items-center">
+                                        <a asp-controller="Students" asp-action="Edit" asp-route-id="@row.StudentId"
+                                           class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="تعديل بيانات الطالب أو كورسه">
+                                            <i class="bi bi-pencil me-1"></i> تعديل
+                                        </a>
+                                        <a asp-controller="Students" asp-action="Details" asp-route-id="@row.StudentId"
+                                           class="btn btn-sm btn-outline-primary rounded-pill px-3" title="ملف الطالب">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
                                 }
                                 else if (row.EnrollmentId.HasValue)
                                 {
-                                    <form asp-action="Remove" asp-route-id="@row.EnrollmentId" method="post" class="d-inline"
-                                          onsubmit="return confirm('إلغاء تسجيل هذا الطالب من الكورس؟');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
-                                            <i class="bi bi-x-circle me-1"></i> إلغاء التسجيل
-                                        </button>
-                                    </form>
+                                    <div class="d-flex gap-1 align-items-center">
+                                        <form asp-action="Remove" asp-route-id="@row.EnrollmentId" method="post" class="d-inline"
+                                              onsubmit="return confirm('إلغاء تسجيل هذا الطالب من الكورس؟');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                                <i class="bi bi-x-circle me-1"></i> إلغاء التسجيل
+                                            </button>
+                                        </form>
+                                        <a asp-controller="Students" asp-action="Details" asp-route-id="@row.StudentId"
+                                           class="btn btn-sm btn-outline-primary rounded-pill px-3" title="ملف الطالب">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
                                 }
                             </td>
                         </tr>
