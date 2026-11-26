@@ -13,8 +13,8 @@
 |---|---|
 | **الحسابات والصلاحيات** | تسجيل دخول/إنشاء حساب، ٣ أدوار: `Admin` / `Instructor` / `Student`، صفحات مخصصة لرفض الوصول |
 | **الأقسام** | إضافة / تعديل / حذف / عرض، وربط المحاضرين بكل قسم |
-| **المحاضرين** | إدارة كاملة + رفع صورة شخصية مع التحقق من النوع والحجم |
-| **الكورسات** | إدارة كاملة + صورة مصغّرة + ربط الكورس بالمحاضر |
+| **المحاضرين** | إدارة كاملة + رفع صورة شخصية + **حذف** مع حسابه وصورته (ممنوع لو عنده كورسات) |
+| **الكورسات** | إدارة كاملة + صورة مصغّرة + ربط الكورس بالمحاضر + **حذف** (ممنوع لو فيه طلاب/تاسكات) |
 | **الطلاب** | عرض وإدارة بيانات الطلاب |
 | **التسجيل (Enrollments)** | تسجيل طالب في أكتر من كورس (علاقة Many-to-Many) |
 | **الواجبات** | إنشاء واجب بكورس محدد + ملف PDF + موعد تسليم + الدرجة النهائية |
@@ -54,34 +54,45 @@ dotnet run --project edutrack/edutrack.csproj
 
 بعد التشغيل افتح: <http://localhost:5104>
 
-> التطبيق بيطبّق أي Migrations ناقصة **تلقائيًا** عند بدء التشغيل، وبيزرع بيانات تجريبية
-> (أدمن + محاضر + كورس) أول مرة.
+> التطبيق بيطبّق أي Migrations ناقصة **تلقائيًا** عند بدء التشغيل، وبيعمل **الأدوار
+> وحساب الأدمن فقط**. لا توجد بيانات تجريبية — بتضيف الأقسام والمحاضرين والكورسات من الواجهة.
 
 ### سلسلة الاتصال
 
-موجودة في `edutrack/appsettings.json`:
+سلسلة التطوير في `edutrack/appsettings.Development.json`:
 
 ```json
 "ConnectionStrings": {
-  "DefaultConnection": "Server=.;Database=EduTrackDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;Encrypt=True"
+  "DefaultConnection": "Server=.;Database=EduTrackDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True;Encrypt=True"
 }
 ```
 
 عدّلها لو SQL Server عندك على instance مختلف (مثلًا `Server=.\SQLEXPRESS`).
 
+**على الاستضافة** متحطش السلسلة في الملفات — استخدم متغيرات بيئة:
+
+| المتغير | القيمة |
+|---|---|
+| `ASPNETCORE_ENVIRONMENT` | `Production` |
+| `ConnectionStrings__DefaultConnection` | نص الاتصال الكامل |
+
+أو مفصولة: `EDUTRACK_DB_SERVER` / `EDUTRACK_DB_NAME` / `EDUTRACK_DB_USER` / `EDUTRACK_DB_PASS`.
+
+### فحص الحالة
+
+`GET /health` بيرجع `{"status":"ok","database":"connected"}` أو `503` لو قاعدة البيانات مش متاحة.
+
 ---
 
-## حسابات تجريبية
+## حسابات الدخول
 
 | الدور | البريد | كلمة السر |
 |---|---|---|
-| Admin | `admin@edutrack.com` | `123456` |
-| Instructor | `instructor@edutrack.com` | `123456` |
+| Admin | من `SeedAdmins:Emails` | من `SeedAdmins:DefaultPassword` |
 
-> ⚠️ دي بيانات **تجريبية للتدريب فقط**. قبل أي نشر حقيقي:
-> غيّر `SeedAdmins:DefaultPassword` في `appsettings.json`، واستخدم
-> [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) أو
-> متغيرات بيئة بدل تخزين كلمات السر في الملف.
+> ⚠️ الافتراضي في التطوير `EduTrack@2026`. **غيّرها قبل أي نشر حقيقي** —
+> حطّ `SeedAdmins__DefaultPassword` كمتغير بيئة على السيرفر.
+> الحسابات الموجودة مش بتتغير كلمة سرها، فالتغيير بيأثر على الحسابات الجديدة فقط.
 
 ---
 

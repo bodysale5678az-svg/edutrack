@@ -7,6 +7,37 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ------------------------------------------------------------------
+// نص الاتصال: إما ConnectionStrings:DefaultConnection جاهز،
+// أو يتجمّع من متغيرات البيئة المفصولة (أسهل للضبط على الاستضافة).
+// ------------------------------------------------------------------
+string? resolvedConnection =
+    builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? builder.Configuration["ConnectionStrings__DefaultConnection"];
+
+string? dbServer = builder.Configuration["EDUTRACK_DB_SERVER"];
+string? dbName = builder.Configuration["EDUTRACK_DB_NAME"];
+string? dbUser = builder.Configuration["EDUTRACK_DB_USER"];
+string? dbPass = builder.Configuration["EDUTRACK_DB_PASS"];
+
+if (!string.IsNullOrWhiteSpace(dbServer) && !string.IsNullOrWhiteSpace(dbName))
+{
+    resolvedConnection =
+        $"Server={dbServer};Database={dbName};" +
+        $"User Id={dbUser ?? dbName};Password={dbPass};" +
+        "Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;";
+}
+
+if (string.IsNullOrWhiteSpace(resolvedConnection))
+{
+    // مفيش اتصال مضبوط: نستخدم اسم قاعدة بيانات وهمي عشان التطبيق يقوم
+    // وتظهر صفحة التشخيص بدل ما يفشل عند بدء التشغيل.
+    resolvedConnection = "Server=(local);Database=__not_configured__;Integrated Security=true;" +
+                         "Connect Timeout=2;TrustServerCertificate=True;";
+}
+
+builder.Configuration["ConnectionStrings:DefaultConnection"] = resolvedConnection;
+
 builder.Services.AddControllersWithViews();
 
 // 1) ربط قاعدة البيانات — SplitQuery يمنع تضخم النتائج عند تحميل أكثر من Collection
@@ -55,7 +86,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// نسجل الأخطاء في ملف داخل الموقع — لازم ندخل الـ logger قبل الـ pipeline
+// نسجل الأخطاء في اللوج — لازم ندخل الـ logger قبل الـ pipeline
 var fileLogger = app.Logger;
 
 app.Use(async (context, next) =>
@@ -70,6 +101,9 @@ app.Use(async (context, next) =>
         throw;
     }
 });
+
+// أخطاء قاعدة البيانات بتتحول لصفحة عربية واضحة بدل 500
+app.UseMiddleware<EduTrack.Middleware.DatabaseErrorMiddleware>();
 
 // بنعمل التحويل لـ HTTPS فقط لو فيه منفذ https مضبوط (بروفايل https).
 // تشغيل بروفايل http مباشرة كان بيطلّع تحذير كل Request.
@@ -109,19 +143,21 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// 5) صفحة تشخيص تعرض سبب الفشل للأدمن فقط
+// 5) نقطة تشخيص: بتقول هل قاعدة البيانات متاحة من غير ما تسرّب كلمة السر أو تفاصيل الاتصال
 app.MapGet("/health", async (AppDbContext db) =>
 {
     try
     {
         bool ok = await db.Database.CanConnectAsync();
+
         return ok
             ? Results.Ok(new { status = "ok", database = "connected" })
             : Results.Json(new { status = "error", database = "unreachable" }, statusCode: 503);
     }
-    catch (Exception ex)
+    catch
     {
-        return Results.Json(new { status = "error", message = ex.Message }, statusCode: 503);
+        // التفاصيل الكاملة بتتسجل في اللوج، ورد المستخدم عام عشان ما نسرّبش بيانات الاتصال
+        return Results.Json(new { status = "error", database = "unreachable" }, statusCode: 503);
     }
 });
 

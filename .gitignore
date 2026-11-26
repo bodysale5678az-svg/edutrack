@@ -55,8 +55,19 @@ coverage*.xml
 wwwroot/uploads/
 wwwroot/images/courses/*
 wwwroot/images/instructors/*
+!wwwroot/images/courses/.gitkeep
+!wwwroot/images/instructors/.gitkeep
 appsettings.*.local.json
 *.log
+
+## ---------------------------------------------------------------------------
+## Publish output — never commit build artifacts
+## ---------------------------------------------------------------------------
+publish/
+[Pp]ublish[Oo]utput/
+*.publishSettings
+*.pubxml
+.publish/
 
 ## ---------------------------------------------------------------------------
 ## OS junk

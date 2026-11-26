@@ -9,8 +9,23 @@
       ViewBag.SubmissionsCount = _context.Submissions.Count();
     ================================================================================
 *@
-@{
+@{ 
     ViewData["Title"] = "الرئيسية";
+}
+
+@if (ViewBag.DatabaseAvailable == false)
+{
+    <div class="alert alert-warning border-0 shadow-sm rounded-4 d-flex align-items-start gap-3 mb-4">
+        <i class="bi bi-database-exclamation fs-3"></i>
+        <div>
+            <h6 class="fw-bold mb-1">تعذر الاتصال بقاعدة البيانات</h6>
+            <p class="mb-1 small">
+                الموقع شغال، لكن البيانات مش متاحة حاليًا. لو أنت الأدمن، تأكد من إعداد
+                <code>ConnectionStrings__DefaultConnection</code> على السيرفر.
+            </p>
+            <a href="/health" target="_blank" class="small fw-semibold">فحص حالة الاتصال &larr;</a>
+        </div>
+    </div>
 }
 
 <div class="p-5 mb-4 bg-dark text-white rounded-4 shadow position-relative overflow-hidden">

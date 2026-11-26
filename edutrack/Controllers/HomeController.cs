@@ -8,18 +8,40 @@ namespace EduTrack.Controllers;
 public class HomeController : Controller
 {
     private readonly AppDbContext _context;
+    private readonly ILogger<HomeController> _logger;
 
-    public HomeController(AppDbContext context)
+    public HomeController(AppDbContext context, ILogger<HomeController> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public IActionResult Index()
     {
-        ViewBag.CoursesCount = _context.Courses.Count();
-        ViewBag.InstructorsCount = _context.Instructors.Count();
-        ViewBag.StudentsCount = _context.Students.Count();
-        ViewBag.SubmissionsCount = _context.Submissions.Count();
+        // الداتابيز ممكن تكون مش متاحة (مثلاً على الاستضافة قبل ضبط الاتصال).
+        // لازم الصفحة الرئيسية تفضل تفتح وتقول للمستخدم المشكلة بدل ما ترجع 500.
+        bool databaseAvailable = true;
+
+        try
+        {
+            ViewBag.CoursesCount = _context.Courses.Count();
+            ViewBag.InstructorsCount = _context.Instructors.Count();
+            ViewBag.StudentsCount = _context.Students.Count();
+            ViewBag.SubmissionsCount = _context.Submissions.Count();
+        }
+        catch (Exception ex)
+        {
+            databaseAvailable = false;
+
+            _logger.LogError(ex, "تعذر قراءة إحصائيات الصفحة الرئيسية من قاعدة البيانات.");
+
+            ViewBag.CoursesCount = 0;
+            ViewBag.InstructorsCount = 0;
+            ViewBag.StudentsCount = 0;
+            ViewBag.SubmissionsCount = 0;
+        }
+
+        ViewBag.DatabaseAvailable = databaseAvailable;
 
         return View();
     }
