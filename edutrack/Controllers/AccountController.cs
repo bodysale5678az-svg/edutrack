@@ -171,6 +171,12 @@ namespace EduTrack.Controllers
         [HttpGet]
         public IActionResult Login()
         {
+            // إنت داخل بالفعل؟ مفيش معنى تفتح صفحة الدخول تاني — نوديك للكورسات
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                return RedirectToAction("Index", "Courses");
+            }
+
             return View();
         }
 
