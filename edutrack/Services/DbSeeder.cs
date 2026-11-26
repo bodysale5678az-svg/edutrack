@@ -9,6 +9,12 @@ namespace EduTrack.Services
     {
         public const string DefaultAdminFullName = "مدير النظام";
 
+        // إيميل الأدمن الافتراضي لما SeedAdmins ناقص
+        private const string FallbackEmail = "admin@edutrack.com";
+
+        // كلمة سر احتياطية قوية — الحساب الموجود مش بتتغير كلمة سره
+        private const string FallbackPassword = "EduTrack@2026";
+
         /// <summary>
         /// إيميلات الأدمن النشطة. القائمة بتتقرأ من قسم SeedAdmins في appsettings.json،
         /// ولو القسم ناقص أو فاضي بنرجع لإيميل افتراضي واحد عشان النظام يفضل شغال.
@@ -27,7 +33,7 @@ namespace EduTrack.Services
 
             if (cleaned.Count == 0)
             {
-                cleaned.Add("admin@edutrack.com");
+                cleaned.Add(FallbackEmail);
             }
 
             return cleaned;
@@ -40,7 +46,7 @@ namespace EduTrack.Services
         {
             string? password = configuration[$"{SeedAdminOptions.SectionName}:DefaultPassword"];
 
-            return string.IsNullOrWhiteSpace(password) ? "123456" : password;
+            return string.IsNullOrWhiteSpace(password) ? FallbackPassword : password;
         }
     }
 }

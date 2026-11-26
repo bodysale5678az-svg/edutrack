@@ -26,10 +26,29 @@ namespace EduTrack.Services
         public const long AttachmentMaxBytes = 10 * 1024 * 1024;
 
         private readonly IWebHostEnvironment _environment;
+        private readonly IConfiguration _configuration;
 
-        public FileStorageService(IWebHostEnvironment environment)
+        public FileStorageService(IWebHostEnvironment environment, IConfiguration configuration)
         {
             _environment = environment;
+            _configuration = configuration;
+        }
+
+        /// <summary>
+        /// مجلد التخزين. على الاستضافة wwwroot غير قابل للكتابة،
+        /// فبنقرأ المسار من FileStorage:RootFolder في إعدادات البيئة.
+        /// لو فاضي بنستخدم wwwroot (سلوك التطوير المحلي).
+        /// </summary>
+        private string UploadRoot
+        {
+            get
+            {
+                string? configured = _configuration["FileStorage:RootFolder"];
+
+                return string.IsNullOrWhiteSpace(configured)
+                    ? _environment.WebRootPath
+                    : Path.Combine(_environment.ContentRootPath, configured);
+            }
         }
 
         public static long MaxBytesFor(string[] allowed, long configuredMax)
@@ -91,7 +110,7 @@ namespace EduTrack.Services
 
         public async Task<string> SaveAsync(IFormFile file, string folder, CancellationToken cancellationToken = default)
         {
-            string directory = Path.Combine(_environment.WebRootPath, folder);
+            string directory = Path.Combine(UploadRoot, folder);
             Directory.CreateDirectory(directory);
 
             string fileName = Guid.NewGuid().ToString("N") + Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -109,10 +128,10 @@ namespace EduTrack.Services
                 return;
             }
 
-            string webRoot = Path.GetFullPath(_environment.WebRootPath);
-            string fullPath = Path.GetFullPath(Path.Combine(webRoot, folder, Path.GetFileName(fileName)));
+            string root = Path.GetFullPath(UploadRoot);
+            string fullPath = Path.GetFullPath(Path.Combine(root, folder, Path.GetFileName(fileName)));
 
-            if (!fullPath.StartsWith(webRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            if (!fullPath.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }

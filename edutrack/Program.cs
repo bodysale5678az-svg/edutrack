@@ -55,6 +55,22 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// نسجل الأخطاء في ملف داخل الموقع — لازم ندخل الـ logger قبل الـ pipeline
+var fileLogger = app.Logger;
+
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        fileLogger.LogError(ex, "خطأ غير متوقع في المسار {Path}", context.Request.Path);
+        throw;
+    }
+});
+
 // بنعمل التحويل لـ HTTPS فقط لو فيه منفذ https مضبوط (بروفايل https).
 // تشغيل بروفايل http مباشرة كان بيطلّع تحذير كل Request.
 if (app.Urls.Any(url => url.StartsWith("https", StringComparison.OrdinalIgnoreCase)))
@@ -77,10 +93,36 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
-// 4) تطبيق أي Migrations ناقصة + زرع بيانات البداية
+// 4) تطبيق أي Migrations ناقصة — من غير ما يوقف التطبيق لو قاعدة البيانات مش متاحة
 using (var scope = app.Services.CreateScope())
 {
-    await DatabaseInitializer.InitializeAsync(scope.ServiceProvider);
+    var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+
+    try
+    {
+        await DatabaseInitializer.InitializeAsync(scope.ServiceProvider);
+    }
+    catch (Exception ex)
+    {
+        // قاعدة البيانات مش متاحة؟ الموقع يفضل شغال ويعرض رسالة واضحة بدل HTTP 500
+        startupLogger.LogError(ex, "فشل تهيئة قاعدة البيانات أثناء بدء التطبيق.");
+    }
 }
+
+// 5) صفحة تشخيص تعرض سبب الفشل للأدمن فقط
+app.MapGet("/health", async (AppDbContext db) =>
+{
+    try
+    {
+        bool ok = await db.Database.CanConnectAsync();
+        return ok
+            ? Results.Ok(new { status = "ok", database = "connected" })
+            : Results.Json(new { status = "error", database = "unreachable" }, statusCode: 503);
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(new { status = "error", message = ex.Message }, statusCode: 503);
+    }
+});
 
 app.Run();
